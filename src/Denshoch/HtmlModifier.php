@@ -1,0 +1,74 @@
+<?php 
+
+namespace Denshoch;
+
+use DOMDocument;
+
+class HtmlModifier
+{
+    private DOMDocument $dom;
+
+    public function __construct(string $html)
+    {
+        // HTML文字列を読み込む
+        $this->dom = new DOMDocument;
+        $this->dom->formatOutput = false;
+        if (!$this->dom->loadXML($html)) {
+            throw new Exception('Failed to load XML.');
+        }
+    }
+
+    public function addClassToTag(string $tag, string $class, bool $overwrite = false): HtmlModifier
+    {
+        // 引数1で指定されたタグを取得する
+        $elements = $this->dom->getElementsByTagName($tag);
+
+        // 取得したタグに引数2で指定されたクラス名を追加する
+        foreach ($elements as $element) {
+            // 既存のクラスがある場合
+            if ($element->hasAttribute('class')) {
+                // 引数3の値がtrueの場合は、既存のクラスを上書きする
+                if ($overwrite) {
+                    $element->setAttribute('class', $class);
+                } else {
+            
+                    // 引数3の値がfalseの場合は、既存のクラスに$classを追記する
+                    $current_class = $element->getAttribute('class');
+                    $element->setAttribute('class', $current_class . ' ' . $class);
+                }
+            } else {
+                // 既存のクラスがない場合は、$classを追加する
+                $element->setAttribute('class', $class);
+            }
+        }
+
+        // チェーンを可能にするため、HtmlModifierクラスを返す
+        return $this;
+    }
+
+    public function save():string
+    {
+        return $this->dom->saveXML($this->dom->documentElement);
+    }
+
+    public static function modify(string $html, string $tag, string $class, bool $overwrite = false): string
+    {
+        $modifier = new HtmlModifier($html);
+        $modifier->addClassToTag($tag, $class, $overwrite);
+        return $modifier->save();
+    }
+
+    public static function modifyMultiple(string $html, array $tagClassPairs, bool $overwrite = false): string
+    {
+    
+        $modifier = new HtmlModifier($html);
+
+        // タグ名とクラス名のペアを処理する
+        foreach ($tagClassPairs as $tag => $class) {
+            $modifier->addClassToTag($tag, $class, $overwrite);
+        }
+
+        return $modifier->save();
+    }
+}
+

@@ -11,7 +11,7 @@ class Utils
      * Remove Unicode control characters from input text.
      * https://stackoverflow.com/questions/1497885/remove-control-characters-from-php-string
      *
-     * @param string $text Input text
+     * @param  string $text Input text
      * @retrun string output text
      */
     public static function removeCtrlChars( string $text )

@@ -13,7 +13,7 @@ composer install
 Usage
 -------
 
-### removeControlChars()
+## removeControlChars()
 
 Remove Unicode control characters from input text.
 
@@ -22,6 +22,24 @@ $text = "&#x0;&#x1";
 \Denshoch\Utils::removeControlChars( $text );
 var_dump( $text ); #=> ''
 ```
+
+## HtmlModifier
+
+```php
+$html = "<div><p>Hello, world!</p></div>";
+$result = \Denshoch\HtmlModifier::modify($html, 'p', 'my-class');
+=> '<div><p class="my-class">Hello, world!</p></div>'
+
+
+$html = "<div><p>Hello, world!</p></div>";
+$tagClassPairs = [
+    'p' => 'my-class',
+    'div' => 'my-other-class'
+];
+$result = HtmlModifier::modifyMultiple($html, $tagClassPairs);
+=> '<div class="my-other-class"><p class="my-class">Hello, world!</p></div>'
+```
+
 
 
 Test
