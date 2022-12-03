@@ -12,9 +12,9 @@ class Utils
      * https://stackoverflow.com/questions/1497885/remove-control-characters-from-php-string
      *
      * @param  string $text Input text
-     * @retrun string output text
+     * @return string output text
      */
-    public static function removeCtrlChars( string $text )
+    public static function removeCtrlChars( string $text ):string
     {
         $text = str_replace("\xe2\x80\xa8", '', $text);
         $text = str_replace("\xe2\x80\xa9", '', $text);

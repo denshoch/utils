@@ -27,7 +27,7 @@ var_dump( $text ); #=> ''
 
 ```php
 $html = "<div><p>Hello, world!</p></div>";
-$result = \Denshoch\HtmlModifier::modify($html, 'p', 'my-class');
+$result = \Denshoch\HtmlModifier::addClass($html, 'p', 'my-class');
 => '<div><p class="my-class">Hello, world!</p></div>'
 
 
@@ -36,11 +36,9 @@ $tagClassPairs = [
     'p' => 'my-class',
     'div' => 'my-other-class'
 ];
-$result = HtmlModifier::modifyMultiple($html, $tagClassPairs);
+$result = HtmlModifier::addClassMultiple($html, $tagClassPairs);
 => '<div class="my-other-class"><p class="my-class">Hello, world!</p></div>'
 ```
-
-
 
 Test
 -----

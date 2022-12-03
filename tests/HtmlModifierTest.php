@@ -61,13 +61,13 @@ class HtmlModifierTest extends TestCase {
   }
 
 
-  // modifyメソッドのテスト
-  public function testModify() {
+  // addClassメソッドのテスト
+  public function testaddClass() {
     // 元のHTML文字列
     $html = "<div><p>Hello, world!</p></div>";
 
-    // modifyメソッドを呼び出し、結果を変数に保存する
-    $result = HtmlModifier::modify($html, 'p', 'my-class');
+    // addClassメソッドを呼び出し、結果を変数に保存する
+    $result = HtmlModifier::addClass($html, 'p', 'my-class');
 
     // 期待するHTML文字列
     $expected = '<div><p class="my-class">Hello, world!</p></div>';
@@ -76,8 +76,8 @@ class HtmlModifierTest extends TestCase {
     $this->assertEquals($expected, $result);
   }
 
-  // modifyMultipleメソッドのテスト
-  public function testModifyMultiple() {
+  // addClassMultipleメソッドのテスト
+  public function testAddClassMultiple() {
     // 元のHTML文字列
     $html = "<div><p>Hello, world!</p></div>";
 
@@ -87,8 +87,8 @@ class HtmlModifierTest extends TestCase {
       'div' => 'my-other-class'
     ];
 
-    // modifyMultipleメソッドを呼び出し、結果を変数に保存する
-    $result = HtmlModifier::modifyMultiple($html, $tagClassPairs);
+    // addClassMultipleメソッドを呼び出し、結果を変数に保存する
+    $result = HtmlModifier::addClassMultiple($html, $tagClassPairs);
 
     $expected = '<div class="my-other-class"><p class="my-class">Hello, world!</p></div>';
 

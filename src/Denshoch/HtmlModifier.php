@@ -4,10 +4,19 @@ namespace Denshoch;
 
 use DOMDocument;
 
+/**
+ * This is a class to modify HTML with PHP
+ */
 class HtmlModifier
 {
+    /**
+     * @var DOMDocument The DOMDocument object
+     */
     private DOMDocument $dom;
 
+    /**
+     * @param string $html The HTML string to be modified
+     */
     public function __construct(string $html)
     {
         // HTML文字列を読み込む
@@ -18,6 +27,14 @@ class HtmlModifier
         }
     }
 
+    /**
+     * Add a class to the specified tag
+     *
+     * @param string $tag The tag to add the class to
+     * @param string $class The class to be added
+     * @param bool $overwrite Whether to overwrite the existing class or not
+     * @return HtmlModifier The HtmlModifier instance (to support method chaining)
+     */
     public function addClassToTag(string $tag, string $class, bool $overwrite = false): HtmlModifier
     {
         // 引数1で指定されたタグを取得する
@@ -46,19 +63,41 @@ class HtmlModifier
         return $this;
     }
 
+    /**
+     * Save the modified HTML
+     *
+     * @return string The modified HTML
+     */
     public function save():string
     {
         return $this->dom->saveXML($this->dom->documentElement);
     }
 
-    public static function modify(string $html, string $tag, string $class, bool $overwrite = false): string
+    /**
+     * Add a class to a tag in the given HTML
+     *
+     * @param string $html The HTML to be modified
+     * @param string $tag The tag to add the class to
+     * @param string $class The class to be added
+     * @param bool $overwrite Whether to overwrite the existing class or not
+     * @return string The modified HTML
+     */
+    public static function addClass(string $html, string $tag, string $class, bool $overwrite = false): string
     {
         $modifier = new HtmlModifier($html);
         $modifier->addClassToTag($tag, $class, $overwrite);
         return $modifier->save();
     }
 
-    public static function modifyMultiple(string $html, array $tagClassPairs, bool $overwrite = false): string
+    /**
+     * Add classes to multiple tags in the given HTML
+     *
+     * @param string $html The HTML to be modified
+     * @param array $tagClassPairs An array of tag-class pairs
+     * @param bool $overwrite Whether to overwrite the existing class or not
+     * @return string The modified HTML
+     */
+    public static function addClassMultiple(string $html, array $tagClassPairs, bool $overwrite = false): string
     {
     
         $modifier = new HtmlModifier($html);
