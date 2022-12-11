@@ -28,11 +28,31 @@ class HtmlModifier
     }
 
     /**
+     * Removes the specified tag.
+     *
+     * @param  string $tag The tag to remove
+     * @return HtmlModifier Returns the HtmlModifier class to enable chaining
+     */
+    public function removeTag(string $tag):HtmlModifier
+    {
+        $elements = iterator_to_array($this->dom->getElementsByTagName($tag));
+
+        // 各要素を処理する
+        foreach ($elements as $el) {
+            // 親ノードから要素を削除する
+            $el->parentNode->removeChild($el);
+        }
+
+        // チェーンを可能にするため、HtmlModifierクラスを返す
+        return $this;
+    }
+
+    /**
      * Add a class to the specified tag
      *
-     * @param string $tag The tag to add the class to
-     * @param string $class The class to be added
-     * @param bool $overwrite Whether to overwrite the existing class or not
+     * @param  string $tag       The tag to add the class to
+     * @param  string $class     The class to be added
+     * @param  bool   $overwrite Whether to overwrite the existing class or not
      * @return HtmlModifier The HtmlModifier instance (to support method chaining)
      */
     public function addClassToTag(string $tag, string $class, bool $overwrite = false): HtmlModifier
@@ -76,10 +96,10 @@ class HtmlModifier
     /**
      * Add a class to a tag in the given HTML
      *
-     * @param string $html The HTML to be modified
-     * @param string $tag The tag to add the class to
-     * @param string $class The class to be added
-     * @param bool $overwrite Whether to overwrite the existing class or not
+     * @param  string $html      The HTML to be modified
+     * @param  string $tag       The tag to add the class to
+     * @param  string $class     The class to be added
+     * @param  bool   $overwrite Whether to overwrite the existing class or not
      * @return string The modified HTML
      */
     public static function addClass(string $html, string $tag, string $class, bool $overwrite = false): string
@@ -92,9 +112,9 @@ class HtmlModifier
     /**
      * Add classes to multiple tags in the given HTML
      *
-     * @param string $html The HTML to be modified
-     * @param array $tagClassPairs An array of tag-class pairs
-     * @param bool $overwrite Whether to overwrite the existing class or not
+     * @param  string $html          The HTML to be modified
+     * @param  array  $tagClassPairs An array of tag-class pairs
+     * @param  bool   $overwrite     Whether to overwrite the existing class or not
      * @return string The modified HTML
      */
     public static function addClassMultiple(string $html, array $tagClassPairs, bool $overwrite = false): string
