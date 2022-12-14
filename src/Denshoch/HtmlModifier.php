@@ -84,6 +84,44 @@ class HtmlModifier
     }
 
     /**
+     * Detects line break tags (`<br>`) within a paragraph and splits it into multiple paragraphs based on the line break tags.
+     *
+     * @return HtmlModifier The HtmlModifier instance (to support method chaining)
+     */
+    public function splitParaByBr()
+    {
+        $elements =  iterator_to_array($this->dom->getElementsByTagName('p'));
+
+        foreach($elements as $el) {
+            $class = $el->getAttribute('class');
+            $parentNode = $el->parentNode;
+            $p = $this->dom->createElement('p');
+            if (!empty($class)) {
+                $p->setAttribute('class', $class);
+            }
+            $children = iterator_to_array($el->childNodes);
+            
+            foreach($children as $child) {
+                if ($child->nodeType === 1 && $child->tagName === 'br') {
+                    $parentNode->insertBefore($p, $el);
+                    //$parentNode->removeChild($el);
+                    $p = $this->dom->createElement('p');
+                    if (!empty($class)) {
+                        $p->setAttribute('class', $class);
+                    }
+                    continue;
+                }
+                $p->appendChild($child);
+            }
+
+            $parentNode->insertBefore($p, $el);
+            $parentNode->removeChild($el);
+        }
+
+        return $this;
+    }
+
+    /**
      * Save the modified HTML
      *
      * @return string The modified HTML

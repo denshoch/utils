@@ -84,6 +84,27 @@ class HtmlModifierTest extends TestCase
         $this->assertEquals($expected, $result);
     }
 
+    /**
+     * @group testSplitParaByBr
+     */
+    public function testSplitParaByBr()
+    {
+        // 元のHTML文字列
+        $html = '<div><p class="my-class">Hello, <br/>world<br/>!</p><p>Lorem <br />ipsum</p></div>';
+
+        // HtmlModifierクラスのインスタンスを作成する
+        $modifier = new HtmlModifier($html);
+
+        // splitParaByBrメソッドを呼び出し、結果を変数に保存する
+        $result = $modifier->splitParaByBr()->save();
+
+        // 期待するHTML文字列
+        $expected = '<div><p class="my-class">Hello, </p><p class="my-class">world</p><p class="my-class">!</p><p>Lorem </p><p>ipsum</p></div>';
+
+        // 結果と期待値を比較する
+        $this->assertEquals($expected, $result);
+    }
+
 
     // addClassメソッドのテスト
     public function testaddClass()
