@@ -53,6 +53,9 @@ class HtmlModifier
      */
     public function addClassToTag(string $tag, string $class, bool $overwrite = false): HtmlModifier
     {
+        // エスケープ
+        $class = htmlspecialchars($class, ENT_QUOTES|ENT_HTML5);
+
         // 引数1で指定されたタグを取得する
         $elements = $this->dom->getElementsByTagName($tag);
 
