@@ -1,4 +1,4 @@
-<?php 
+<?php
 
 namespace Denshoch;
 
@@ -15,15 +15,27 @@ class HtmlModifier
     private DOMDocument $dom;
 
     /**
+     * @var DOMDocument Dummy root tag name
+     */
+    private string $dummyRoot = '_denshoch';
+
+    /**
      * @param string $html The HTML string to be modified
      */
     public function __construct(string $html)
     {
+        $has_root = preg_match('/^<\s*[a-zA-Z0-9]+\s*.*?>/', $html);
+
+        // If not, add a root element named _denshoch
+        if (!$has_root) {
+            $html = '<'.$this->dummyRoot.'>' . $html . '</'.$this->dummyRoot.'>';
+        }
+
         // HTML文字列を読み込む
         $this->dom = new DOMDocument;
         $this->dom->formatOutput = false;
         if (!$this->dom->loadXML($html)) {
-            throw new Exception('Failed to load XML.');
+            throw new \Exception('Failed to load XML.');
         }
     }
 
@@ -48,7 +60,7 @@ class HtmlModifier
                 if ($overwrite) {
                     $element->setAttribute('class', $class);
                 } else {
-            
+
                     // 引数3の値がfalseの場合は、既存のクラスに$classを追記する
                     $current_class = $element->getAttribute('class');
                     $element->setAttribute('class', $current_class . ' ' . $class);
@@ -68,9 +80,13 @@ class HtmlModifier
      *
      * @return string The modified HTML
      */
-    public function save():string
+    public function save(): string
     {
-        return $this->dom->saveXML($this->dom->documentElement);
+        if ($this->dom->documentElement->nodeName === $this->dummyRoot) {
+            return Utils::innerXML($this->dom->documentElement);
+        } else {
+            return $this->dom->saveXML($this->dom->documentElement);
+        }
     }
 
     /**
@@ -99,7 +115,7 @@ class HtmlModifier
      */
     public static function addClassMultiple(string $html, array $tagClassPairs, bool $overwrite = false): string
     {
-    
+
         $modifier = new HtmlModifier($html);
 
         // タグ名とクラス名のペアを処理する
@@ -110,4 +126,3 @@ class HtmlModifier
         return $modifier->save();
     }
 }
-

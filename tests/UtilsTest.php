@@ -12,6 +12,52 @@ class UtilsTest extends TestCase
         $source = mb_convert_encoding( $source, 'UTF-8', 'HTML-ENTITIES' );
         $excpected = "[text][/text]";
         $actual = Utils::removeCtrlChars( $source );
-        $this->assertSame( $excpected, $actual );
+        $this->assertEquals( $excpected, $actual );
+    }
+
+    public function testLoadXml()
+    {
+        $xml = '<?xml version="1.0" encoding="UTF-8"?><root><node>test</node></root>';
+        $dom = Utils::loadXml($xml);
+        $this->assertInstanceOf(DOMDocument::class, $dom);
+        $this->assertEquals("test", $dom->getElementsByTagName("node")[0]->nodeValue);
+    }
+
+    /**
+     * @expectedException \DOMException
+     * @expectedExceptionMessage Failed to load XML
+     */
+    public function testLoadXmlWithInvalidXml1()
+    {
+        $xml = '<root><node>test</nod></root>';
+        $this->expectException(\DOMException::class);
+        $this->expectExceptionMessage('Opening and ending tag mismatch');
+        Utils::loadXml($xml);
+    }
+
+    /**
+     * @expectedException \DOMException
+     * @expectedExceptionMessage Failed to load XML
+     */
+    public function testLoadXmlWithInvalidXml2()
+    {
+        $xml = 'test';
+        $this->expectException(\DOMException::class);
+        $this->expectExceptionMessage('Start tag expected, \'<\' not found in Entity');
+        Utils::loadXml($xml);
+    }
+
+    public function testInnerXML()
+    {
+        $xml = '<?xml version="1.0" encoding="UTF-8"?>
+                <_denshoch><item id="1">Item 1</item><item id="2">Item 2</item><item id="3">Item 3</item></_denshoch>';
+        $dom = new DOMDocument();
+        $dom->preserveWhiteSpace = true;
+        $dom->loadXML($xml);
+        $node = $dom->getElementsByTagName('_denshoch')->item(0);
+        
+        $expectedXml = '<item id="1">Item 1</item><item id="2">Item 2</item><item id="3">Item 3</item>';
+        $this->assertEquals($expectedXml, Utils::innerXML($node));
+        $this->assertEquals($expectedXml, Utils::innerXML($dom->documentElement));
     }
 }

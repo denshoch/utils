@@ -24,6 +24,24 @@ class HtmlModifierTest extends TestCase {
     $this->assertEquals($expected, $result);
   }
 
+  // addClassToTagメソッドのテスト
+  public function testAddClassToTagRootless() {
+    // 元のHTML文字列
+    $html = "test<p>Hello, world!</p>test";
+
+    // HtmlModifierクラスのインスタンスを作成する
+    $modifier = new HtmlModifier($html);
+
+    // addClassToTagメソッドを呼び出し、結果を変数に保存する
+    $result = $modifier->addClassToTag('p', 'my-class')->save();
+
+    // 期待するHTML文字列
+    $expected = 'test<p class="my-class">Hello, world!</p>test';
+
+    // 結果と期待値を比較する
+    $this->assertEquals($expected, $result);
+  }
+
   // addClassToTagメソッドのテスト。override
   public function testAddClassToTagAppend() {
     // 元のHTML文字列
