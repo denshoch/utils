@@ -24,19 +24,23 @@ class HtmlModifier
      */
     public function __construct(string $html)
     {
-        $has_root = preg_match('/^<\s*[a-zA-Z0-9]+\s*.*?>/', $html);
 
-        // If not, add a root element named _denshoch
-        if (!$has_root) {
-            $html = '<'.$this->dummyRoot.'>' . $html . '</'.$this->dummyRoot.'>';
+        try {
+            $this->dom = \Denshoch\Utils::loadXML($html);
+        } catch(\Exception $e) {
+
+            $msg = $e->getMessage();
+            $reg = '{Extra content at the end of the document in Entity|Start tag expected, \'<\' not found in Entity}';
+
+            if (preg_match($reg, $msg)) {
+                $html = '<'.$this->dummyRoot.'>' . $html . '</'.$this->dummyRoot.'>';
+                $this->dom = \Denshoch\Utils::loadXML($html);
+            } else {
+                throw $e;
+            }
         }
 
-        // HTML文字列を読み込む
-        $this->dom = new DOMDocument;
         $this->dom->formatOutput = false;
-        if (!$this->dom->loadXML($html)) {
-            throw new \Exception('Failed to load XML.');
-        }
     }
 
     /**
