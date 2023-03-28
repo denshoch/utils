@@ -3,6 +3,8 @@
 namespace Denshoch;
 
 use DOMDocument;
+use DOMXPath;
+use DOMNode;
 
 /**
  * This is a class to modify HTML with PHP
@@ -20,6 +22,16 @@ class HtmlModifier
     private string $dummyRoot = '_denshoch';
 
     /**
+     * Get the DOMDocument object.
+     *
+     * @return DOMDocument The DOMDocument object
+     */
+    public function getDom(): DOMDocument
+    {
+        return $this->dom;
+    }
+
+    /**
      * @param string $html The HTML string to be modified
      */
     public function __construct(string $html)
@@ -27,13 +39,13 @@ class HtmlModifier
 
         try {
             $this->dom = \Denshoch\Utils::loadXML($html);
-        } catch(\Exception $e) {
+        } catch (\Exception $e) {
 
             $msg = $e->getMessage();
             $reg = '{Extra content at the end of the document in Entity|Start tag expected, \'<\' not found in Entity}';
 
             if (preg_match($reg, $msg)) {
-                $html = '<'.$this->dummyRoot.'>' . $html . '</'.$this->dummyRoot.'>';
+                $html = '<' . $this->dummyRoot . '>' . $html . '</' . $this->dummyRoot . '>';
                 $this->dom = \Denshoch\Utils::loadXML($html);
             } else {
                 throw $e;
@@ -54,7 +66,7 @@ class HtmlModifier
     public function addClassToTag(string $tag, string $class, bool $overwrite = false): HtmlModifier
     {
         // エスケープ
-        $class = htmlspecialchars($class, ENT_QUOTES|ENT_HTML5);
+        $class = htmlspecialchars($class, ENT_QUOTES | ENT_HTML5);
 
         // 引数1で指定されたタグを取得する
         $elements = $this->dom->getElementsByTagName($tag);
@@ -131,5 +143,71 @@ class HtmlModifier
         }
 
         return $modifier->save();
+    }
+
+    /**
+     * Check if the given node is a descendant of an element with the specified tag name.
+     *
+     * @param DOMNode $node The node to check
+     * @param string $tag The tag name to check for
+     * @return bool True if the node is a descendant of an element with the specified tag name, false otherwise
+     */
+    private function isDescendantOfTag(DOMNode $node, string $tag): bool
+    {
+        while ($node !== null) {
+            if ($node->nodeName === $tag) {
+                return true;
+            }
+            $node = $node->parentNode;
+        }
+
+        return false;
+    }
+
+    /**
+     * Adds ruby annotations to the specified target text within the HTML document.
+     *
+     * @param string $target The target text to add ruby annotations to
+     * @param string $rt The ruby text to be added as annotation
+     * @param int $limit The maximum number of occurrences of the target text to be processed (0 means all occurrences)
+     * @param bool $rb If true, wrap the target text in an <rb> element; otherwise, use a text node
+     * @param bool $rp If true, add <rp>(</rp> before the <rt> element and <rp>)</rp> after the <rt> element
+     * @return void
+     */
+    public function addRubyText(string $target, string $rt, int $limit = 0, bool $rb = false, bool $rp = false): void
+    {
+        $xpath = new DOMXPath($this->dom);
+        $textNodes = $xpath->query("//text()");
+
+        $count = 0;
+        $pattern = '/(' . preg_quote($target, '/') . ')/msu';
+
+        $replacement = function ($matches) use (&$count, $target, $rt, $limit, $rb, $rp) {
+            $count++;
+
+            if ($limit > 0 && $count > $limit) {
+                return $matches[0];
+            }
+
+            $rubyContent = $rb ? "<rb>{$target}</rb>" : $target;
+            $rtElement = "<rt>{$rt}</rt>";
+            if ($rp) {
+                $rtElement = "<rp>(</rp>{$rtElement}<rp>)</rp>";
+            }
+
+            return "<ruby>{$rubyContent}{$rtElement}</ruby>";
+        };
+
+        foreach ($textNodes as $textNode) {
+            if (!$this->isDescendantOfTag($textNode, 'ruby')) {
+                $modifiedText = preg_replace_callback($pattern, $replacement, $textNode->nodeValue);
+
+                if ($modifiedText !== $textNode->nodeValue) {
+                    $rubyFragment = $this->dom->createDocumentFragment();
+                    $rubyFragment->appendXML($modifiedText);
+                    $textNode->parentNode->replaceChild($rubyFragment, $textNode);
+                }
+            }
+        }
     }
 }

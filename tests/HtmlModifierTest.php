@@ -1,13 +1,16 @@
 <?php
+
 declare(strict_types=1);
 
 use PHPUnit\Framework\TestCase;
 use Denshoch\HtmlModifier;
 
-class HtmlModifierTest extends TestCase {
+class HtmlModifierTest extends TestCase
+{
 
   // addClassToTagメソッドのテスト
-  public function testAddClassToTag() {
+  public function testAddClassToTag()
+  {
     // 元のHTML文字列
     $html = "<div><p>Hello, world!</p></div>";
 
@@ -25,7 +28,8 @@ class HtmlModifierTest extends TestCase {
   }
 
   // addClassToTagメソッドのテスト
-  public function testAddClassToTagRootless() {
+  public function testAddClassToTagRootless()
+  {
     // 元のHTML文字列
     $html = "test<p>Hello, world!</p>test";
 
@@ -43,7 +47,8 @@ class HtmlModifierTest extends TestCase {
   }
 
   // addClassToTagメソッドのテスト。override
-  public function testAddClassToTagAppend() {
+  public function testAddClassToTagAppend()
+  {
     // 元のHTML文字列
     $html = '<div><p class="prev">Hello, world!</p></div>';
 
@@ -61,7 +66,8 @@ class HtmlModifierTest extends TestCase {
   }
 
   // addClassToTagメソッドのテスト。override
-  public function testAddClassToTagOverride() {
+  public function testAddClassToTagOverride()
+  {
     // 元のHTML文字列
     $html = '<div><p class="prev">Hello, world!</p></div>';
 
@@ -80,7 +86,8 @@ class HtmlModifierTest extends TestCase {
 
 
   // addClassメソッドのテスト
-  public function testaddClass() {
+  public function testaddClass()
+  {
     // 元のHTML文字列
     $html = "<div><p>Hello, world!</p></div>";
 
@@ -95,7 +102,8 @@ class HtmlModifierTest extends TestCase {
   }
 
   // addClassMultipleメソッドのテスト
-  public function testAddClassMultiple() {
+  public function testAddClassMultiple()
+  {
     // 元のHTML文字列
     $html = "<div><p>Hello, world!</p></div>";
 
@@ -112,5 +120,55 @@ class HtmlModifierTest extends TestCase {
 
     // 結果と期待値を比較する
     $this->assertEquals($expected, $result);
+  }
+
+  public function testIsDescendantOfTag()
+  {
+      $html = '<div><p>こんにちは、<ruby>太郎<rt>タロウ</rt></ruby>さん。</p></div>';
+      $modifier = new HtmlModifier($html);
+      $xpath = new DOMXPath($modifier->getDOM());
+  
+      // Use reflection to access the private isDescendantOfTag method.
+      $reflection = new \ReflectionClass(HtmlModifier::class);
+      $method = $reflection->getMethod('isDescendantOfTag');
+      $method->setAccessible(true);
+  
+      // Find the '太郎' text node.
+      $textNode = $xpath->query("//text()[contains(., '太郎')]")->item(0);
+      $this->assertTrue($method->invoke($modifier, $textNode, 'ruby'));
+  
+      // Find the 'こんにちは' text node.
+      $textNode = $xpath->query("//text()[contains(., 'こんにちは')]")->item(0);
+      $this->assertFalse($method->invoke($modifier, $textNode, 'ruby'));
+  }
+
+  public function testAddRubyText()
+  {
+    $html = '<p>こんにちは、私の名前は太郎です。太郎は学生です。</p>';
+    $expected = '<p>こんにちは、私の名前は<ruby>太郎<rt>タロウ</rt></ruby>です。<ruby>太郎<rt>タロウ</rt></ruby>は学生です。</p>';
+
+    $htmlModifier = new HtmlModifier($html);
+    $htmlModifier->addRubyText('太郎', 'タロウ');
+    $result = $htmlModifier->save();
+
+    $this->assertSame($expected, $result);
+
+    $html = '<p>こんにちは、私の名前は太郎です。太郎は学生です。</p>';
+    $expected = '<p>こんにちは、私の名前は<ruby><rb>太郎</rb><rt>タロウ</rt></ruby>です。太郎は学生です。</p>';
+
+    $htmlModifier = new HtmlModifier($html);
+    $htmlModifier->addRubyText('太郎', 'タロウ', 1, true);
+    $result = $htmlModifier->save();
+
+    $this->assertSame($expected, $result);
+
+    $html = '<p>こんにちは、私の名前は太郎です。太郎は学生です。</p>';
+    $expected = '<p>こんにちは、私の名前は<ruby>太郎<rp>(</rp><rt>タロウ</rt><rp>)</rp></ruby>です。<ruby>太郎<rp>(</rp><rt>タロウ</rt><rp>)</rp></ruby>は学生です。</p>';
+
+    $htmlModifier = new HtmlModifier($html);
+    $htmlModifier->addRubyText('太郎', 'タロウ', 0, false, true);
+    $result = $htmlModifier->save();
+
+    $this->assertSame($expected, $result);
   }
 }
