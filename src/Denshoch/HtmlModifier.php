@@ -177,7 +177,7 @@ class HtmlModifier
     public function addRubyText(string $target, string $rt, int $limit = 0, bool $rb = false, bool $rp = false): void
     {
         $xpath = new DOMXPath($this->dom);
-        $textNodes = $xpath->query("//text()");
+        $textNodes = $xpath->query("//text()[not(ancestor::head or ancestor::ruby)]");
 
         $count = 0;
         $pattern = '/(' . preg_quote($target, '/') . ')/msu';
