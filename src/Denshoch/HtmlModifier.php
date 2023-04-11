@@ -165,6 +165,34 @@ class HtmlModifier
     }
 
     /**
+     * Add or update the alt text of an img element with a specified filename in the DOM.
+     *
+     * @param string $filename The basename of the img src attribute to find and update.
+     * @param string $alttxt The alt text to set for the found img element.
+     * @param int $override (Optional) Set to 1 to override existing alt text, 0 to leave it unchanged. Default is 0.
+     */
+    public function addAltText(string $filename, string $alttxt, int $override = 0) {
+        $images = $this->dom->getElementsByTagName('img');
+
+        foreach ($images as $img) {
+            $src = $img->getAttribute('src');
+            $basename = basename($src);
+
+            if ($basename === $filename) {
+                $alt = $img->getAttribute('alt');
+
+                if ($override === 1) {
+                    $img->setAttribute('alt', $alttxt);
+                } else {
+                    if ($alt === '') {
+                        $img->setAttribute('alt', $alttxt);
+                    }
+                }
+            }
+        }
+    }
+
+    /**
      * Adds ruby annotations to the specified target text within the HTML document.
      *
      * @param string $target The target text to add ruby annotations to
@@ -180,21 +208,20 @@ class HtmlModifier
         $textNodes = $xpath->query("//text()[not(ancestor::head or ancestor::ruby)]");
 
         $count = 0;
-        $pattern = '/(' . preg_quote($target, '/') . ')/msu';
-
+        $pattern = '/(' . preg_quote($target, '/') . ')/u';
         $replacement = function ($matches) use (&$count, $target, $rt, $limit, $rb, $rp) {
             $count++;
-
+    
             if ($limit > 0 && $count > $limit) {
                 return $matches[0];
             }
-
+    
             $rubyContent = $rb ? "<rb>{$target}</rb>" : $target;
             $rtElement = "<rt>{$rt}</rt>";
             if ($rp) {
                 $rtElement = "<rp>(</rp>{$rtElement}<rp>)</rp>";
             }
-
+    
             return "<ruby>{$rubyContent}{$rtElement}</ruby>";
         };
 

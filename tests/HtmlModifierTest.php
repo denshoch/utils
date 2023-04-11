@@ -124,22 +124,52 @@ class HtmlModifierTest extends TestCase
 
   public function testIsDescendantOfTag()
   {
-      $html = '<div><p>こんにちは、<ruby>太郎<rt>タロウ</rt></ruby>さん。</p></div>';
-      $modifier = new HtmlModifier($html);
-      $xpath = new DOMXPath($modifier->getDOM());
-  
-      // Use reflection to access the private isDescendantOfTag method.
-      $reflection = new \ReflectionClass(HtmlModifier::class);
-      $method = $reflection->getMethod('isDescendantOfTag');
-      $method->setAccessible(true);
-  
-      // Find the '太郎' text node.
-      $textNode = $xpath->query("//text()[contains(., '太郎')]")->item(0);
-      $this->assertTrue($method->invoke($modifier, $textNode, 'ruby'));
-  
-      // Find the 'こんにちは' text node.
-      $textNode = $xpath->query("//text()[contains(., 'こんにちは')]")->item(0);
-      $this->assertFalse($method->invoke($modifier, $textNode, 'ruby'));
+    $html = '<div><p>こんにちは、<ruby>太郎<rt>タロウ</rt></ruby>さん。</p></div>';
+    $modifier = new HtmlModifier($html);
+    $xpath = new DOMXPath($modifier->getDOM());
+
+    // Use reflection to access the private isDescendantOfTag method.
+    $reflection = new \ReflectionClass(HtmlModifier::class);
+    $method = $reflection->getMethod('isDescendantOfTag');
+    $method->setAccessible(true);
+
+    // Find the '太郎' text node.
+    $textNode = $xpath->query("//text()[contains(., '太郎')]")->item(0);
+    $this->assertTrue($method->invoke($modifier, $textNode, 'ruby'));
+
+    // Find the 'こんにちは' text node.
+    $textNode = $xpath->query("//text()[contains(., 'こんにちは')]")->item(0);
+    $this->assertFalse($method->invoke($modifier, $textNode, 'ruby'));
+  }
+
+  public function testAddAltText()
+  {
+    $html = '<p><img src="example.jpg"/>Hello, my name is Taro. <img src="example.jpg"/>Taro is a student.</p>';
+    $expected = '<p><img src="example.jpg" alt="Taro"/>Hello, my name is Taro. <img src="example.jpg" alt="Taro"/>Taro is a student.</p>';
+
+    $htmlModifier = new HtmlModifier($html);
+    $htmlModifier->addAltText('example.jpg', 'Taro');
+    $result = $htmlModifier->save();
+
+    $this->assertSame($expected, $result);
+
+    $html = '<p><img src="example.jpg" alt="Taro"/>Hello, my name is Taro. <img src="example.jpg" />Taro is a student.</p>';
+    $expected = '<p><img src="example.jpg" alt="Taro"/>Hello, my name is Taro. <img src="example.jpg" alt="New Taro"/>Taro is a student.</p>';
+
+    $htmlModifier = new HtmlModifier($html);
+    $htmlModifier->addAltText('example.jpg', 'New Taro', 0);
+    $result = $htmlModifier->save();
+
+    $this->assertSame($expected, $result);
+
+    $html = '<p><img src="example.jpg" alt="Taro"/>Hello, my name is Taro. <img src="example.jpg"/>Taro is a student.</p>';
+    $expected = '<p><img src="example.jpg" alt="New Taro"/>Hello, my name is Taro. <img src="example.jpg" alt="New Taro"/>Taro is a student.</p>';
+
+    $htmlModifier = new HtmlModifier($html);
+    $htmlModifier->addAltText('example.jpg', 'New Taro', 1);
+    $result = $htmlModifier->save();
+
+    $this->assertSame($expected, $result);
   }
 
   public function testAddRubyText()
