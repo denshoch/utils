@@ -3,7 +3,7 @@
     "type": "library",
     "description": "Utility class used in Denshoch softwares.",
     "license": "MIT",
-    "version": "1.1.5",
+    "version": "1.1.6",
     "authors": [
         {
             "name": "lostandfound",
