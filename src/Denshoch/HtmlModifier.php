@@ -101,10 +101,13 @@ class HtmlModifier
      */
     public function save(): string
     {
-        if ($this->dom->documentElement->nodeName === $this->dummyRoot) {
+        $nodeName = $this->dom->documentElement->nodeName;
+        if ($nodeName === $this->dummyRoot) {
             return Utils::innerXML($this->dom->documentElement);
+        } elseif ($nodeName === 'html') {
+            return $this->dom->saveXML();
         } else {
-            return $this->dom->saveXML($this->dom->documentElement);
+            return $this->dom->saveXML($this->dom->documentElement, LIBXML_NOXMLDECL);
         }
     }
 

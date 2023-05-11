@@ -201,4 +201,17 @@ class HtmlModifierTest extends TestCase
 
     $this->assertSame($expected, $result);
   }
+
+  public function testSaveAsXHTML5()
+  {
+    $html = '<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html><html xmlns="http://www.w3.org/1999/xhtml"><head><title>title</title></head><body><p>Hello world!</p></body></html>';
+    $expected = $html;
+
+    $htmlModifier = new HtmlModifier($html);
+    $result = $htmlModifier->save();
+
+    print($result);
+
+    $this->assertXmlStringEqualsXmlString($expected, $result);
+  }
 }
