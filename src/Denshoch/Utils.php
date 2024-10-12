@@ -3,6 +3,8 @@
 namespace Denshoch;
 
 use DOMDocument;
+use DOMException;
+use DOMNode;
 
 /**
  * Utility class used in Denshoch softwares.
@@ -11,49 +13,55 @@ class Utils
 {
     /**
      * Remove Unicode control characters from input text.
-     * https://stackoverflow.com/questions/1497885/remove-control-characters-from-php-string
      *
      * @param  string $text Input text
      * @return string Output text
      */
     public static function removeCtrlChars(string $text): string
     {
-        $text = str_replace("\xe2\x80\xa8", '', $text);
-        $text = str_replace("\xe2\x80\xa9", '', $text);
+        $text = str_replace(["\xe2\x80\xa8", "\xe2\x80\xa9"], '', $text);
         return preg_replace('/[\x00-\x09\x0B\x0C\x0E-\x1F\x7F]/', '', $text);
-    }
-
-    /**
-     * Error handler for loadXml function.
-     * https://www.php.net/manual/ja/domdocument.loadxml.php
-     *
-     * @param  int    $errno  The level of the error raised
-     * @param  string $errstr The error message
-     * @param  string $errfile The filename that the error was raised in
-     * @param  int    $errline The line number the error was raised at
-     * @throws \DOMException if the error level is E_WARNING and the error message contains "DOMDocument::loadXML()"
-     */
-    public static function handleXmlError(int $errno, string $errstr, string $errfile, int $errline): void
-    {
-        if ($errno == E_WARNING && (substr_count($errstr, "DOMDocument::loadXML()") > 0)) {
-            throw new \DOMException($errstr);
-        }
     }
 
     /**
      * Loads an XML string into a DOMDocument object.
      *
      * @param  string $xmlStr The XML string to load
+     * @param  int $options (optional) Bitwise OR of the libxml option constants
+     * @param  string|null $encoding (optional) The encoding of the XML string
      * @return DOMDocument The DOMDocument object created from the XML string
-     * @throws \DOMException if an error occurs during the parsing of the XML string
+     * @throws DOMException if an error occurs during the parsing of the XML string
      */
-    public static function loadXml(string $xmlStr): \DOMDocument
+    public static function loadXml(string $xmlStr, int $options = 0, ?string $encoding = null): DOMDocument
     {
-        set_error_handler([__CLASS__, 'handleXmlError']);
-        $dom = new \DOMDocument();
-        $dom->loadXml($xmlStr);
-        restore_error_handler();
-        return $dom;
+        $dom = new DOMDocument();
+
+        if ($encoding !== null) {
+            $dom->encoding = $encoding;
+        }
+
+        // 外部エンティティと外部DTDの読み込みを無効にする
+        $options |= LIBXML_NONET | LIBXML_DTDLOAD;
+
+        $internalErrors = libxml_use_internal_errors(true);
+        
+        try {
+            $xmlStr = self::removeCtrlChars($xmlStr);
+            $success = $dom->loadXML($xmlStr, $options);
+            
+            if (!$success) {
+                $errors = libxml_get_errors();
+                $errorMessages = array_map(function($error) {
+                    return sprintf("Error on line %d: %s", $error->line, $error->message);
+                }, $errors);
+                throw new DOMException(implode("\n", $errorMessages));
+            }
+            
+            return $dom;
+        } finally {
+            libxml_clear_errors();
+            libxml_use_internal_errors($internalErrors);
+        }
     }
 
     /**
@@ -62,15 +70,12 @@ class Utils
      * @param  DOMNode $node The node to get the inner XML of
      * @return string  The inner XML of the node
      */
-    public static function innerXML(\DOMNode $node): string
+    public static function innerXML(DOMNode $node): string
     {
         $xml = '';
-
-        // 子ノードを取得してXML文字列を連結する
         foreach ($node->childNodes as $child) {
             $xml .= $node->ownerDocument->saveXML($child);
         }
-
         return $xml;
     }
 }

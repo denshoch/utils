@@ -5,21 +5,25 @@ namespace Denshoch;
 use DOMDocument;
 use DOMXPath;
 use DOMNode;
+use InvalidArgumentException;
 
 /**
  * This is a class to modify HTML with PHP
  */
 class HtmlModifier
 {
-    /**
-     * @var DOMDocument The DOMDocument object
-     */
     private DOMDocument $dom;
+    private string $dummyRoot = '_denshoch';
 
     /**
-     * @var DOMDocument Dummy root tag name
+     * @param string $html The HTML string to be modified
+     * @throws InvalidArgumentException If the HTML is invalid
      */
-    private string $dummyRoot = '_denshoch';
+    public function __construct(string $html)
+    {
+        $this->loadHtml($html);
+        $this->dom->formatOutput = false;
+    }
 
     /**
      * Get the DOMDocument object.
@@ -32,27 +36,36 @@ class HtmlModifier
     }
 
     /**
-     * @param string $html The HTML string to be modified
+     * Load HTML into DOMDocument
+     *
+     * @param string $html
+     * @throws InvalidArgumentException
      */
-    public function __construct(string $html)
+    private function loadHtml(string $html): void
     {
-
         try {
-            $this->dom = \Denshoch\Utils::loadXML($html);
+            $this->dom = Utils::loadXML($html);
         } catch (\Exception $e) {
-
-            $msg = $e->getMessage();
-            $reg = '{Extra content at the end of the document in Entity|Start tag expected, \'<\' not found in Entity}';
-
-            if (preg_match($reg, $msg)) {
-                $html = '<' . $this->dummyRoot . '>' . $html . '</' . $this->dummyRoot . '>';
-                $this->dom = \Denshoch\Utils::loadXML($html);
+            if ($this->isExtraContentError($e)) {
+                $html = "<{$this->dummyRoot}>{$html}</{$this->dummyRoot}>";
+                $this->dom = Utils::loadXML($html);
             } else {
-                throw $e;
+                throw new InvalidArgumentException("Invalid HTML: " . $e->getMessage(), 0, $e);
             }
         }
+    }
 
-        $this->dom->formatOutput = false;
+    /**
+     * Check if the exception is due to extra content
+     *
+     * @param \Exception $e
+     * @return bool
+     */
+    private function isExtraContentError(\Exception $e): bool
+    {
+        $msg = $e->getMessage();
+        $reg = '{Extra content at the end of the document|Start tag expected, \'<\' not found}';
+        return preg_match($reg, $msg) === 1;
     }
 
     /**
@@ -61,37 +74,35 @@ class HtmlModifier
      * @param string $tag The tag to add the class to
      * @param string $class The class to be added
      * @param bool $overwrite Whether to overwrite the existing class or not
-     * @return HtmlModifier The HtmlModifier instance (to support method chaining)
+     * @return $this
      */
-    public function addClassToTag(string $tag, string $class, bool $overwrite = false): HtmlModifier
+    public function addClassToTag(string $tag, string $class, bool $overwrite = false): self
     {
-        // エスケープ
         $class = htmlspecialchars($class, ENT_QUOTES | ENT_HTML5);
-
-        // 引数1で指定されたタグを取得する
         $elements = $this->dom->getElementsByTagName($tag);
 
-        // 取得したタグに引数2で指定されたクラス名を追加する
         foreach ($elements as $element) {
-            // 既存のクラスがある場合
-            if ($element->hasAttribute('class')) {
-                // 引数3の値がtrueの場合は、既存のクラスを上書きする
-                if ($overwrite) {
-                    $element->setAttribute('class', $class);
-                } else {
-
-                    // 引数3の値がfalseの場合は、既存のクラスに$classを追記する
-                    $current_class = $element->getAttribute('class');
-                    $element->setAttribute('class', $current_class . ' ' . $class);
-                }
-            } else {
-                // 既存のクラスがない場合は、$classを追加する
-                $element->setAttribute('class', $class);
-            }
+            $this->addClassToElement($element, $class, $overwrite);
         }
 
-        // チェーンを可能にするため、HtmlModifierクラスを返す
         return $this;
+    }
+
+    /**
+     * Add a class to a specific element
+     *
+     * @param \DOMElement $element
+     * @param string $class
+     * @param bool $overwrite
+     */
+    private function addClassToElement(\DOMElement $element, string $class, bool $overwrite): void
+    {
+        if ($element->hasAttribute('class') && !$overwrite) {
+            $currentClass = $element->getAttribute('class');
+            $element->setAttribute('class', "{$currentClass} {$class}");
+        } else {
+            $element->setAttribute('class', $class);
+        }
     }
 
     /**
@@ -122,9 +133,8 @@ class HtmlModifier
      */
     public static function addClass(string $html, string $tag, string $class, bool $overwrite = false): string
     {
-        $modifier = new HtmlModifier($html);
-        $modifier->addClassToTag($tag, $class, $overwrite);
-        return $modifier->save();
+        $modifier = new self($html);
+        return $modifier->addClassToTag($tag, $class, $overwrite)->save();
     }
 
     /**
@@ -137,10 +147,8 @@ class HtmlModifier
      */
     public static function addClassMultiple(string $html, array $tagClassPairs, bool $overwrite = false): string
     {
+        $modifier = new self($html);
 
-        $modifier = new HtmlModifier($html);
-
-        // タグ名とクラス名のペアを処理する
         foreach ($tagClassPairs as $tag => $class) {
             $modifier->addClassToTag($tag, $class, $overwrite);
         }
@@ -157,7 +165,7 @@ class HtmlModifier
      */
     private function isDescendantOfTag(DOMNode $node, string $tag): bool
     {
-        while ($node !== null) {
+        while ($node !== null && $node->nodeType === XML_ELEMENT_NODE) {
             if ($node->nodeName === $tag) {
                 return true;
             }
@@ -171,28 +179,22 @@ class HtmlModifier
      * Add or update the alt text of an img element with a specified filename in the DOM.
      *
      * @param string $filename The basename of the img src attribute to find and update.
-     * @param string $alttxt The alt text to set for the found img element.
-     * @param int $override (Optional) Set to 1 to override existing alt text, 0 to leave it unchanged. Default is 0.
+     * @param string $altText The alt text to set for the found img element.
+     * @param bool $override Whether to override existing alt text. Default is false.
+     * @return $this
      */
-    public function addAltText(string $filename, string $alttxt, int $override = 0) {
-        $images = $this->dom->getElementsByTagName('img');
+    public function addAltText(string $filename, string $altText, bool $override = false): self
+    {
+        $xpath = new DOMXPath($this->dom);
+        $images = $xpath->query("//img[contains(@src, '{$filename}')]");
 
         foreach ($images as $img) {
-            $src = $img->getAttribute('src');
-            $basename = basename($src);
-
-            if ($basename === $filename) {
-                $alt = $img->getAttribute('alt');
-
-                if ($override === 1) {
-                    $img->setAttribute('alt', $alttxt);
-                } else {
-                    if ($alt === '') {
-                        $img->setAttribute('alt', $alttxt);
-                    }
-                }
+            if ($override || !$img->hasAttribute('alt')) {
+                $img->setAttribute('alt', $altText);
             }
         }
+
+        return $this;
     }
 
     /**
@@ -203,16 +205,46 @@ class HtmlModifier
      * @param int $limit The maximum number of occurrences of the target text to be processed (0 means all occurrences)
      * @param bool $rb If true, wrap the target text in an <rb> element; otherwise, use a text node
      * @param bool $rp If true, add <rp>(</rp> before the <rt> element and <rp>)</rp> after the <rt> element
-     * @return void
+     * @return $this
      */
-    public function addRubyText(string $target, string $rt, int $limit = 0, bool $rb = false, bool $rp = false): void
+    public function addRubyText(string $target, string $rt, int $limit = 0, bool $rb = false, bool $rp = false): self
     {
         $xpath = new DOMXPath($this->dom);
         $textNodes = $xpath->query("//text()[not(ancestor::head or ancestor::ruby)]");
 
         $count = 0;
         $pattern = '/(' . preg_quote($target, '/') . ')/u';
-        $replacement = function ($matches) use (&$count, $target, $rt, $limit, $rb, $rp) {
+        $replacement = $this->createRubyReplacement($target, $rt, $rb, $rp, $limit, $count);
+
+        foreach ($textNodes as $textNode) {
+            if (!$this->isDescendantOfTag($textNode, 'ruby')) {
+                $modifiedText = preg_replace_callback($pattern, $replacement, $textNode->nodeValue);
+
+                if ($modifiedText !== $textNode->nodeValue) {
+                    $rubyFragment = $this->dom->createDocumentFragment();
+                    $rubyFragment->appendXML($modifiedText);
+                    $textNode->parentNode->replaceChild($rubyFragment, $textNode);
+                }
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * Create a replacement callback for ruby annotations
+     *
+     * @param string $target
+     * @param string $rt
+     * @param bool $rb
+     * @param bool $rp
+     * @param int $limit
+     * @param int &$count
+     * @return callable
+     */
+    private function createRubyReplacement(string $target, string $rt, bool $rb, bool $rp, int $limit, int &$count): callable
+    {
+        return function ($matches) use ($target, $rt, $rb, $rp, $limit, &$count) {
             $count++;
     
             if ($limit > 0 && $count > $limit) {
@@ -227,17 +259,5 @@ class HtmlModifier
     
             return "<ruby>{$rubyContent}{$rtElement}</ruby>";
         };
-
-        foreach ($textNodes as $textNode) {
-            if (!$this->isDescendantOfTag($textNode, 'ruby')) {
-                $modifiedText = preg_replace_callback($pattern, $replacement, $textNode->nodeValue);
-
-                if ($modifiedText !== $textNode->nodeValue) {
-                    $rubyFragment = $this->dom->createDocumentFragment();
-                    $rubyFragment->appendXML($modifiedText);
-                    $textNode->parentNode->replaceChild($rubyFragment, $textNode);
-                }
-            }
-        }
     }
 }

@@ -43,8 +43,13 @@ class UtilsTest extends TestCase
     {
         $xml = 'test';
         $this->expectException(\DOMException::class);
-        $this->expectExceptionMessage('Start tag expected, \'<\' not found in Entity');
-        Utils::loadXml($xml);
+    
+        try {
+            Utils::loadXml($xml);
+        } catch (\DOMException $e) {
+            $this->assertStringContainsString("Start tag expected, '<' not found", $e->getMessage());
+            throw $e; // 再スローして例外が発生したことを確認
+        }
     }
 
     public function testInnerXML()
