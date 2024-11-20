@@ -189,8 +189,12 @@ class HtmlModifier
         $images = $xpath->query("//img[contains(@src, '{$filename}')]");
 
         foreach ($images as $img) {
-            if ($override || !$img->hasAttribute('alt')) {
-                $img->setAttribute('alt', $altText);
+            if ($img instanceof \DOMElement) {
+                if ($override || !$img->hasAttribute('alt')) {
+                    $img->setAttribute('alt', $altText);
+                }
+            } else {
+                throw new \InvalidArgumentException('The node is not an instance of DOMElement');
             }
         }
 
