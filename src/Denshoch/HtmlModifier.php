@@ -185,19 +185,20 @@ class HtmlModifier
      */
     public function addAltText(string $filename, string $altText, bool $override = false): self
     {
-        $xpath = new DOMXPath($this->dom);
-        $images = $xpath->query("//img[contains(@src, '{$filename}')]");
-
+        $images = $this->dom->getElementsByTagName('img');
         foreach ($images as $img) {
             if ($img instanceof \DOMElement) {
-                if ($override || !$img->hasAttribute('alt')) {
-                    $img->setAttribute('alt', $altText);
+                $src = $img->getAttribute('src');
+                if (strpos($src, $filename) !== false) {
+                    if ($override || (!$img->hasAttribute('alt') || $img->getAttribute('alt') === '')) {
+                        $img->setAttribute('alt', $altText);
+                    }
                 }
             } else {
                 throw new \InvalidArgumentException('The node is not an instance of DOMElement');
             }
         }
-
+    
         return $this;
     }
 
